@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lobios - Relatório de Active Directory</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --lobios-primary: #6a3094;
+            --lobios-secondary: #9657c7;
+            --lobios-light: #f7f5fa;
+            --lobios-dark: #2c1445;
+            --lobios-accent: #8244b2;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .sidebar {
+            background-color: var(--lobios-primary);
+            color: white;
+            height: 100vh;
+            position: fixed;
+            width: 280px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-header img {
+            max-width: 180px;
+        }
+        
+        .sidebar-menu {
+            padding: 0;
+            list-style: none;
+            margin-top: 20px;
+        }
+        
+        .sidebar-menu li {
+            padding: 12px 20px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-menu li:hover {
+            background-color: var(--lobios-accent);
+        }
+        
+        .sidebar-menu li.active {
+            background-color: var(--lobios-secondary);
+            border-left: 4px solid white;
+        }
+        
+        .sidebar-menu i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .main-content {
+            margin-left: 280px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .header {
+            background-color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: var(--lobios-primary);
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .header-actions button {
+            background-color: var(--lobios-primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        
+        .header-actions button:hover {
+            background-color: var(--lobios-accent);
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: var(--lobios-light);
+            color: var(--lobios-primary);
+            padding: 15px 20px;
+            font-weight: 600;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-header .badge {
+            background-color: var(--lobios-primary);
+            color: white;
+            font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-card i {
+            font-size: 32px;
+            color: var(--lobios-primary);
+            margin-bottom: 15px;
+        }
+        
+        .stat-card h3 {
+            font-size: 28px;
+            color: var(--lobios-dark);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .stat-card p {
+            color: #6c757d;
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th {
+            background-color: var(--lobios-light);
+            color: var(--lobios-primary);
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 15px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .data-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .data-table .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .data-table .status.active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .data-table .status.inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .summary-box {
+            background-color: var(--lobios-light);
+            border-left: 4px solid var(--lobios-primary);
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-box h5 {
+            color: var(--lobios-primary);
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .summary-box p {
+            margin: 0;
+            color: #6c757d;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-top: 20px;
+        }
+        
+        .footer img {
+            max-width: 120px;
+            margin-bottom: 10px;
+        }
+        
+        .footer p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .page-title {
+            margin-bottom: 25px;
+            color: var(--lobios-primary);
+            font-weight: 600;
+        }
+        
+        /* Responsivo */
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 70px;
+            }
+            
+            .sidebar-header img {
+                display: none;
+            }
+            
+            .sidebar-header h3 {
+                display: none;
+            }
+            
+            .sidebar-menu span {
+                display: none;
+            }
+            
+            .sidebar-menu i {
+                margin-right: 0;
+                font-size: 18px;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .sidebar {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        /* Custom badges */
+        .badge-lobios-primary {
+            background-color: var(--lobios-primary);
+            color: white;
+        }
+        
+        .badge-lobios-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .badge-lobios-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .badge-lobios-success {
+            background-color: #28a745;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="path/to/lobios-logo.png" alt="Lobios">
+        </div>
+        <ul class="sidebar-menu">
+            <li class="active"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></li>
+            <li><i class="fas fa-users"></i> <span>Usuários</span></li>
+            <li><i class="fas fa-user-shield"></i> <span>Administradores</span></li>
+            <li><i class="fas fa-user-times"></i> <span>Usuários Desativados</span></li>
+            <li><i class="fas fa-clock"></i> <span>Último Login</span></li>
+            <li><i class="fas fa-key"></i> <span>Senhas Nunca Expiram</span></li>
+            <li><i class="fas fa-users-cog"></i> <span>Grupos</span></li>
+            <li><i class="fas fa-sitemap"></i> <span>OUs</span></li>
+            <li><i class="fas fa-desktop"></i> <span>Computadores</span></li>
+            <li><i class="fas fa-server"></i> <span>Servidores</span></li>
+            <li><i class="fas fa-shield-alt"></i> <span>Controladores de Domínio</span></li>
+            <li><i class="fas fa-cogs"></i> <span>GPOs</span></li>
+            <li><i class="fas fa-clipboard-list"></i> <span>Inventário</span></li>
+        </ul>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-content">
+        <div class="header">
+            <h1>Active Directory - Dashboard</h1>
+            <div class="header-actions">
+                <button onclick="exportToCsv()"><i class="fas fa-file-export"></i> Exportar CSV</button>
+                <button onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+                <button onclick="sendReport()"><i class="fas fa-envelope"></i> Enviar Relatório</button>
+            </div>
+        </div>
+
+        <!-- Resumo Rápido -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Informações do Domínio
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Empresa:</strong> <span id="company-name">ACME Corporation</span></p>
+                        <p><strong>Domínio:</strong> <span id="domain-name">acme.local</span></p>
+                        <p><strong>Data:</strong> <span id="report-date">2025-05-01</span></p>
+                        <p><strong>Responsável:</strong> <span id="owner-name">Administrador de TI</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Resumo da Segurança
+                    </div>
+                    <div class="card-body">
+                        <div class="summary-box">
+                            <h5>Pontos de Atenção</h5>
+                            <p><i class="fas fa-exclamation-triangle text-warning"></i> <span id="warning-count">12</span> usuários com senhas que nunca expiram</p>
+                            <p><i class="fas fa-exclamation-circle text-danger"></i> <span id="danger-count">8</span> usuários não fizeram login nos últimos 90 dias</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estatísticas Principais -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <i class="fas fa-users"></i>
+                    <h3 id="total-users">245</h3>
+                    <p>Total de Usuários</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <i class="fas fa-user-times"></i>
+                    <h3 id="disabled-users">18</h3>
+                    <p>Usuários Desativados</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <i class="fas fa-desktop"></i>
+                    <h3 id="total-computers">132</h3>
+                    <p>Computadores</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <i class="fas fa-server"></i>
+                    <h3 id="total-servers">24</h3>
+                    <p>Servidores</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Distribuição de Sistemas Operacionais
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" id="os-chart">
+                            <!-- Canvas para o gráfico será inserido por JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Status de Segurança
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" id="security-chart">
+                            <!-- Canvas para o gráfico será inserido por JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Dados -->
+        <div class="card">
+            <div class="card-header">
+                <div>Dados Detalhados</div>
+                <div>
+                    <span class="badge badge-lobios-primary" id="table-count">0 registros</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="data-table" id="main-data-table">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>SamAccountName</th>
+                                <th>Departamento</th>
+                                <th>Cargo</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dados serão inseridos dinamicamente por JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <img src="path/to/lobios-logo-small.png" alt="Lobios">
+            <p>ADRT - Active Directory Report Tool v2.0 | Desenvolvido por Lobios Segurança • Tecnologia • Inovação</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script>
+        // Função para preencher os dados do relatório
+        function fillReportData(data) {
+            // Preencher informações do domínio
+            document.getElementById('company-name').textContent = data.company || 'N/A';
+            document.getElementById('domain-name').textContent = data.domain || 'N/A';
+            document.getElementById('report-date').textContent = data.date || 'N/A';
+            document.getElementById('owner-name').textContent = data.owner || 'N/A';
+            
+            // Preencher estatísticas
+            document.getElementById('total-users').textContent = data.totalUsers || '0';
+            document.getElementById('disabled-users').textContent = data.disabledUsers || '0';
+            document.getElementById('total-computers').textContent = data.totalComputers || '0';
+            document.getElementById('total-servers').textContent = data.totalServers || '0';
+            
+            // Preencher alertas
+            document.getElementById('warning-count').textContent = data.passwordNeverExpires || '0';
+            document.getElementById('danger-count').textContent = data.lastLogon90Days || '0';
+            
+            // Contagem de registros na tabela
+            document.getElementById('table-count').textContent = 
+                (data.tableData ? data.tableData.length : 0) + ' registros';
+            
+            // Preencher tabela
+            const tableBody = document.querySelector('#main-data-table tbody');
+            tableBody.innerHTML = ''; // Limpar tabela existente
+            
+            if (data.tableData && data.tableData.length > 0) {
+                data.tableData.forEach(row => {
+                    const tr = document.createElement('tr');
+                    
+                    // Ajuste essas colunas de acordo com o tipo de relatório
+                    tr.innerHTML = `
+                        <td>${row.Name || ''}</td>
+                        <td>${row.SamAccountName || ''}</td>
+                        <td>${row.Department || ''}</td>
+                        <td>${row.Title || ''}</td>
+                        <td><span class="status ${row.Enabled === true ? 'active' : 'inactive'}">${row.Enabled === true ? 'Ativo' : 'Inativo'}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></button>
+                            <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(tr);
+                });
+            } else {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td colspan="6" class="text-center">Nenhum dado disponível</td>';
+                tableBody.appendChild(tr);
+            }
+            
+            // Criar gráficos
+            createOSChart(data.osSummary);
+            createSecurityChart(data.securitySummary);
+        }
+        
+        // Criar gráfico de sistemas operacionais
+        function createOSChart(osSummary) {
+            if (!osSummary) {
+                osSummary = {
+                    'Windows 10': 95,
+                    'Windows 11': 25,
+                    'Windows Server 2019': 15,
+                    'Windows Server 2022': 8,
+                    'Outros': 5
+                };
+            }
+            
+            const ctx = document.createElement('canvas');
+            document.getElementById('os-chart').innerHTML = '';
+            document.getElementById('os-chart').appendChild(ctx);
+            
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(osSummary),
+                    datasets: [{
+                        data: Object.values(osSummary),
+                        backgroundColor: [
+                            '#6a3094', // Lobios Primary
+                            '#9657c7', // Lobios Secondary
+                            '#8244b2', // Lobios Accent
+                            '#2c1445', // Lobios Dark
+                            '#c9a6e9'  // Lighter purple
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Criar gráfico de segurança
+        function createSecurityChart(securitySummary) {
+            if (!securitySummary) {
+                securitySummary = {
+                    'Usuários Ativos': 227,
+                    'Usuários Desativados': 18,
+                    'Senhas Nunca Expiram': 12,
+                    'Último Login > 90 dias': 8
+                };
+            }
+            
+            const ctx = document.createElement('canvas');
+            document.getElementById('security-chart').innerHTML = '';
+            document.getElementById('security-chart').appendChild(ctx);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(securitySummary),
+                    datasets: [{
+                        label: 'Quantidade',
+                        data: Object.values(securitySummary),
+                        backgroundColor: [
+                            '#28a745', // Verde para ativos
+                            '#dc3545', // Vermelho para desativados
+                            '#ffc107', // Amarelo para senhas que nunca expiram
+                            '#fd7e14'  // Laranja para último login > 90 dias
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Exportar para CSV
+        function exportToCsv() {
+            // Implementação da exportação para CSV
+            alert('Função de exportação para CSV em desenvolvimento.');
+        }
+        
+        // Enviar relatório
+        function sendReport() {
+            // Implementação do envio de relatório
+            alert('Função de envio de relatório em desenvolvimento.');
+        }
+        
+        // Dados de exemplo - seriam substituídos pelos dados reais do relatório
+        const exampleData = {
+            company: 'ACME Corporation',
+            domain: 'acme.local',
+            date: '2025-05-01',
+            owner: 'Administrador de TI',
+            totalUsers: 245,
+            disabledUsers: 18,
+            totalComputers: 132,
+            totalServers: 24,
+            passwordNeverExpires: 12,
+            lastLogon90Days: 8,
+            osSummary: {
+                'Windows 10': 95,
+                'Windows 11': 25,
+                'Windows Server 2019': 15,
+                'Windows Server 2022': 8,
+                'Outros': 5
+            },
+            securitySummary: {
+                'Usuários Ativos': 227,
+                'Usuários Desativados': 18,
+                'Senhas Nunca Expiram': 12,
+                'Último Login > 90 dias': 8
+            },
+            tableData: [
+                { Name: 'João Silva', SamAccountName: 'joao.silva', Department: 'TI', Title: 'Administrador de Sistemas', Enabled: true },
+                { Name: 'Maria Santos', SamAccountName: 'maria.santos', Department: 'RH', Title: 'Analista de RH', Enabled: true },
+                { Name: 'Carlos Oliveira', SamAccountName: 'carlos.oliveira', Department: 'Marketing', Title: 'Coordenador de Marketing', Enabled: false }
+            ]
+        };
+        
+        // Inicializar a página com os dados de exemplo
+        document.addEventListener('DOMContentLoaded', function() {
+            fillReportData(exampleData);
+            
+            // Alternar menu ativo
+            const menuItems = document.querySelectorAll('.sidebar-menu li');
+            menuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    menuItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
