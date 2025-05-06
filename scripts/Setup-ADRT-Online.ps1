@@ -121,6 +121,11 @@ $resources = @(
         Type = "Image"
     },
     @{
+        URL = "$baseUrl/modules/ADRT-Notifications.ps1"
+        Path = "modules\ADRT-Notifications.ps1"
+        Type = "Module"
+    },
+    @{
         URL = "$baseUrl/web/img/lobios-logo-small.png"
         Path = "web\img\lobios-logo-small.png"
         Type = "Image"
