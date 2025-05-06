@@ -1,88 +1,88 @@
 <#
 .SYNOPSIS
-    Active Directory - An�lise Completa (Formato Otimizado)
+    Active Directory - Análise Completa (Formato Otimizado)
 .DESCRIPTION
-    Script ADRT modernizado para an�lise completa do Active Directory
-    Utilizando o ADRT-Helper.ps1 para gera��o do relat�rio detalhado
+    Script ADRT modernizado para análise completa do Active Directory
+    Utilizando o ADRT-Helper.ps1 para geração do relatório detalhado
 .NOTES
     Original: analise-completa.ps1
     Convertido para formato moderno e otimizado
 #>
 
-# Definir codifica��o para garantir acentua��o correta
+# Definir codificação para garantir acentuação correta
 $OutputEncoding = [System.Text.UTF8Encoding]::new()
 $PSDefaultParameterValues['Out-File:Encoding'] = 'UTF8'
 
-# Vari�veis do script
+# Variáveis do script
 $date = Get-Date -Format "yyyy-MM-dd"
 
-# Obt�m o diret�rio onde o script est� localizado, n�o o diret�rio atual de execu��o
+# Obtém o diretório onde o script está localizado, não o diretório atual de execução
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $directoryPath = $scriptDir
 $outputPath = Join-Path -Path $scriptDir -ChildPath "ad-reports\ad-analysis\ad-analysis-modern.html"
 
-# Criar diret�rio se n�o existir
+# Criar diretório se não existir
 $outputDir = Split-Path -Path $outputPath -Parent
 if (-not (Test-Path -Path $outputDir)) {
     New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-    Write-Host "? Diret�rio de sa�da criado: $outputDir" -ForegroundColor Green
+    Write-Host "✓ Diretório de saída criado: $outputDir" -ForegroundColor Green
 }
 
 # Banner
 Write-Host @"
 
-?????????????????????????????????????????????????????????????????
-?                                                               ?
-?      ???      ??????? ??????? ??? ??????? ????????           ?
-?      ???     ?????????????????????????????????????           ?
-?      ???     ???   ?????????????????   ???????????           ?
-?      ???     ???   ?????????????????   ???????????           ?
-?      ?????????????????????????????????????????????           ?
-?      ???????? ??????? ??????? ??? ??????? ????????           ?
-?                                                               ?
-?        ADRT - An�lise Completa do Active Directory            ?
-?                                                               ?
-?????????????????????????????????????????????????????????????????
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║      ██╗      ██████╗ ██████╗ ██╗ ██████╗ ███████╗           ║
+║      ██║     ██╔═══██╗██╔══██╗██║██╔═══██╗██╔════╝           ║
+║      ██║     ██║   ██║██████╔╝██║██║   ██║███████╗           ║
+║      ██║     ██║   ██║██╔══██╗██║██║   ██║╚════██║           ║
+║      ███████╗╚██████╔╝██████╔╝██║╚██████╔╝███████║           ║
+║      ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝ ╚═════╝ ╚══════╝           ║
+║                                                               ║
+║        ADRT - Análise Completa do Active Directory            ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
 "@ -ForegroundColor Magenta
 
-# Obter informa��es de configura��o
+# Obter informações de configuração
 if (Test-Path -Path "config\config.txt") {
     try {
         $config = Get-Content -Path "config\config.txt" -Encoding UTF8 -ErrorAction Stop
         $company = $config[7]
         $owner = $config[9]
-        Write-Host "? Arquivo de configura��o carregado com sucesso" -ForegroundColor Green
+        Write-Host "✓ Arquivo de configuração carregado com sucesso" -ForegroundColor Green
     }
     catch {
-        Write-Host "! Erro ao ler arquivo de configura��o. Usando valores padr�o." -ForegroundColor Yellow
+        Write-Host "! Erro ao ler arquivo de configuração. Usando valores padrão." -ForegroundColor Yellow
         $company = "Lobios"
         $owner = "Administrador"
     }
 }
 else {
-    Write-Host "! Arquivo de configura��o n�o encontrado. Usando valores padr�o." -ForegroundColor Yellow
+    Write-Host "! Arquivo de configuração não encontrado. Usando valores padrão." -ForegroundColor Yellow
     $company = "Lobios"
     $owner = "Administrador"
 }
 
 # Adicione este trecho antes do resumo final no atualizar-relatorios.ps1
 
-# Tentar importar o m�dulo de notifica��o
+# Tentar importar o módulo de notificação
 $notificationModuleAvailable = $false
 try {
     Import-Module ".\modules\ADRT-Notification.psm1" -ErrorAction Stop
     $notificationModuleAvailable = $true
     Write-Host ""
-    Write-Host "Enviando notifica��es..." -ForegroundColor Cyan
+    Write-Host "Enviando notificações..." -ForegroundColor Cyan
 }
 catch {
-    Write-Host "! M�dulo de notifica��es n�o encontrado. As notifica��es n�o ser�o enviadas." -ForegroundColor Yellow
+    Write-Host "! Módulo de notificações não encontrado. As notificações não serão enviadas." -ForegroundColor Yellow
 }
 
-# Enviar notifica��es se o m�dulo estiver dispon�vel
+# Enviar notificações se o módulo estiver disponível
 if ($notificationModuleAvailable) {
     try {
-        # Criar hashtable para simular as estat�sticas necess�rias
+        # Criar hashtable para simular as estatísticas necessárias
         $stats = @{
             TotalUsers = 0
             TotalComputers = 0
@@ -94,7 +94,7 @@ if ($notificationModuleAvailable) {
             DomainName = (Get-ADDomain).Forest
         }
         
-        # Adicionar estat�sticas espec�ficas de atualiza��o
+        # Adicionar estatísticas específicas de atualização
         $stats.AtualizacaoTotal = $totalScripts
         $stats.AtualizacaoSucessos = $sucessos
         $stats.AtualizacaoFalhas = $falhas
@@ -102,17 +102,17 @@ if ($notificationModuleAvailable) {
         # Caminho do index-modern.html
         $indexPath = Join-Path -Path (Get-Location).Path -ChildPath "index-modern.html"
         
-        # Enviar notifica��o usando a fun��o existente
+        # Enviar notificação usando a função existente
         $notificationSent = Send-ADRTNotification -ScriptName "atualizar-relatorios.ps1" `
-                                                 -Type "Atualiza��o de Relat�rios" `
+                                                 -Type "Atualização de Relatórios" `
                                                  -Stats $stats `
                                                  -Domain $stats.DomainName `
                                                  -ReportPath $indexPath
         
-        Write-Host "? Notifica��es enviadas com sucesso" -ForegroundColor Green
+        Write-Host "✓ Notificações enviadas com sucesso" -ForegroundColor Green
     }
     catch {
-        Write-Host "? Erro ao enviar notifica��es: $_" -ForegroundColor Red
+        Write-Host "✗ Erro ao enviar notificações: $_" -ForegroundColor Red
         $notificationSent = $false
     }
 }
@@ -120,20 +120,20 @@ if ($notificationModuleAvailable) {
 # Carregar o helper
 . ".\modules\ADRT-Helper.ps1"
 
-# Importar m�dulo ActiveDirectory
+# Importar módulo ActiveDirectory
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
-    Write-Host "? M�dulo ActiveDirectory carregado com sucesso" -ForegroundColor Green
+    Write-Host "✓ Módulo ActiveDirectory carregado com sucesso" -ForegroundColor Green
 }
 catch {
-    Write-Host "? Erro cr�tico: N�o foi poss�vel carregar o m�dulo ActiveDirectory" -ForegroundColor Red
-    Write-Host "Este script requer o m�dulo ActiveDirectory. Verifique se as ferramentas RSAT est�o instaladas." -ForegroundColor Yellow
+    Write-Host "✗ Erro crítico: Não foi possível carregar o módulo ActiveDirectory" -ForegroundColor Red
+    Write-Host "Este script requer o módulo ActiveDirectory. Verifique se as ferramentas RSAT estão instaladas." -ForegroundColor Yellow
     exit 1
 }
 
 Write-Host ""
-Write-Host "Iniciando an�lise completa do Active Directory..." -ForegroundColor Cyan
-Write-Host "Coletando estat�sticas e m�tricas..." -ForegroundColor Cyan
+Write-Host "Iniciando análise completa do Active Directory..." -ForegroundColor Cyan
+Write-Host "Coletando estatísticas e métricas..." -ForegroundColor Cyan
 
 # Coletar dados principais - inicializar estrutura
 $stats = @{
@@ -156,37 +156,37 @@ $stats = @{
     DomainLevel = ""
 }
 
-# Contagens b�sicas com tratamento de erro
+# Contagens básicas com tratamento de erro
 try {
     $stats.TotalUsers = (Get-ADUser -Filter *).Count
     $stats.EnabledUsers = (Get-ADUser -Filter {Enabled -eq $true}).Count
     $stats.DisabledUsers = $stats.TotalUsers - $stats.EnabledUsers
-    Write-Host "Total de usu�rios: $($stats.TotalUsers)" -ForegroundColor Green
-    Write-Host "Usu�rios ativos: $($stats.EnabledUsers)" -ForegroundColor Green
-    Write-Host "Usu�rios desativados: $($stats.DisabledUsers)" -ForegroundColor Green
+    Write-Host "Total de usuários: $($stats.TotalUsers)" -ForegroundColor Green
+    Write-Host "Usuários ativos: $($stats.EnabledUsers)" -ForegroundColor Green
+    Write-Host "Usuários desativados: $($stats.DisabledUsers)" -ForegroundColor Green
 }
 catch {
-    Write-Host "Erro ao contar usu�rios: $_" -ForegroundColor Yellow
+    Write-Host "Erro ao contar usuários: $_" -ForegroundColor Yellow
 }
 
-# Calcular usu�rios com senha nunca expira
+# Calcular usuários com senha nunca expira
 try {
     $stats.PasswordNeverExpires = (Get-ADUser -filter * -properties PasswordNeverExpires | 
         Where-Object { $_.PasswordNeverExpires -eq "true" -and $_.enabled -eq "true" }).Count
-    Write-Host "Usu�rios com senha que nunca expira: $($stats.PasswordNeverExpires)" -ForegroundColor Green
+    Write-Host "Usuários com senha que nunca expira: $($stats.PasswordNeverExpires)" -ForegroundColor Green
 }
 catch {
-    Write-Host "Erro ao contar usu�rios com senha que nunca expira: $_" -ForegroundColor Yellow
+    Write-Host "Erro ao contar usuários com senha que nunca expira: $_" -ForegroundColor Yellow
 }
 
-# Calcular usu�rios sem login nos �ltimos 90 dias
+# Calcular usuários sem login nos últimos 90 dias
 try {
     $timestamp = (Get-Date).AddDays(-($stats.Days))
     $stats.LastLogon90Days = (Get-ADUser -Filter {LastLogonTimeStamp -lt $timestamp -and enabled -eq $true} -Properties LastLogonTimeStamp).Count
-    Write-Host "Usu�rios sem login nos �ltimos 90 dias: $($stats.LastLogon90Days)" -ForegroundColor Green
+    Write-Host "Usuários sem login nos últimos 90 dias: $($stats.LastLogon90Days)" -ForegroundColor Green
 }
 catch {
-    Write-Host "Erro ao contar usu�rios sem login recente: $_" -ForegroundColor Yellow
+    Write-Host "Erro ao contar usuários sem login recente: $_" -ForegroundColor Yellow
 }
 
 # Computadores e servidores
@@ -227,34 +227,34 @@ catch {
 try {
     $domainControllers = Get-ADDomainController -Filter * 
     $stats.DomainControllers = $domainControllers.Count
-    Write-Host "Total de controladores de dom�nio: $($stats.DomainControllers)" -ForegroundColor Green
+    Write-Host "Total de controladores de domínio: $($stats.DomainControllers)" -ForegroundColor Green
 }
 catch {
-    Write-Host "Erro ao contar controladores de dom�nio: $_" -ForegroundColor Yellow
+    Write-Host "Erro ao contar controladores de domínio: $_" -ForegroundColor Yellow
 }
 
-# Obter informa��es de dom�nio
+# Obter informações de domínio
 try {
     $domain = Get-ADDomain
     $forest = Get-ADForest
     $stats.DomainName = $domain.DNSRoot
     $stats.DomainLevel = $domain.DomainMode
     $stats.ForestLevel = $forest.ForestMode
-    Write-Host "Dom�nio: $($stats.DomainName)" -ForegroundColor Green
-    Write-Host "N�vel funcional de dom�nio: $($stats.DomainLevel)" -ForegroundColor Green
-    Write-Host "N�vel funcional de floresta: $($stats.ForestLevel)" -ForegroundColor Green
+    Write-Host "Domínio: $($stats.DomainName)" -ForegroundColor Green
+    Write-Host "Nível funcional de domínio: $($stats.DomainLevel)" -ForegroundColor Green
+    Write-Host "Nível funcional de floresta: $($stats.ForestLevel)" -ForegroundColor Green
 }
 catch {
-    Write-Host "Erro ao obter informa��es de dom�nio: $_" -ForegroundColor Yellow
+    Write-Host "Erro ao obter informações de domínio: $_" -ForegroundColor Yellow
 }
 
 # Domain Admins
 try {
     $stats.DomainAdmins = (Get-ADGroupMember -Identity "Domain Admins" -ErrorAction SilentlyContinue).Count
-    Write-Host "Total de administradores de dom�nio: $($stats.DomainAdmins)" -ForegroundColor Green
+    Write-Host "Total de administradores de domínio: $($stats.DomainAdmins)" -ForegroundColor Green
 }
 catch {
-    Write-Host "Erro ao contar administradores de dom�nio: $_" -ForegroundColor Yellow
+    Write-Host "Erro ao contar administradores de domínio: $_" -ForegroundColor Yellow
 }
 
 # Enterprise Admins
@@ -264,7 +264,7 @@ try {
 }
 catch {
     $stats.EnterpriseAdmins = 0
-    Write-Host "Grupo Enterprise Admins n�o encontrado ou erro ao contar" -ForegroundColor Yellow
+    Write-Host "Grupo Enterprise Admins não encontrado ou erro ao contar" -ForegroundColor Yellow
 }
 
 # GPOs
@@ -280,7 +280,7 @@ catch {
 Write-Host ""
 Write-Host "Analisando sistemas operacionais..." -ForegroundColor Cyan
 
-# An�lise de sistemas operacionais
+# Análise de sistemas operacionais
 $osList = @{}
 try {
     $computers = Get-ADComputer -Filter * -Properties OperatingSystem
@@ -310,7 +310,7 @@ try {
     }
     
     # Exibir resumo de SO
-    Write-Host "Distribui��o de sistemas operacionais:" -ForegroundColor Green
+    Write-Host "Distribuição de sistemas operacionais:" -ForegroundColor Green
     foreach ($key in $osList.Keys) {
         Write-Host "  $key : $($osList[$key])" -ForegroundColor Gray
     }
@@ -320,11 +320,11 @@ catch {
 }
 
 Write-Host ""
-Write-Host "Realizando an�lise de seguran�a..." -ForegroundColor Cyan
+Write-Host "Realizando análise de segurança..." -ForegroundColor Cyan
 
-# An�lise de seguran�a
+# Análise de segurança
 $securityAnalysis = @{
-    RiskLevel = "M�dio"
+    RiskLevel = "Médio"
     Findings = @()
     Recommendations = @()
 }
@@ -334,7 +334,7 @@ if ($stats.TotalUsers -gt 0) {
     $neverExpiresPercentage = [math]::Round(($stats.PasswordNeverExpires / $stats.EnabledUsers) * 100, 1)
     if ($neverExpiresPercentage -gt 10) {
         $securityAnalysis.Findings += "Alto percentual de contas ($neverExpiresPercentage%) com senhas que nunca expiram"
-        $securityAnalysis.Recommendations += "Revisar pol�tica de senhas e configurar expira��o para contas n�o cr�ticas"
+        $securityAnalysis.Recommendations += "Revisar política de senhas e configurar expiração para contas não críticas"
     }
 }
 
@@ -342,56 +342,56 @@ if ($stats.TotalUsers -gt 0) {
 if ($stats.EnabledUsers -gt 0) {
     $inactivePercentage = [math]::Round(($stats.LastLogon90Days / $stats.EnabledUsers) * 100, 1)
     if ($inactivePercentage -gt 15) {
-        $securityAnalysis.Findings += "Alto percentual de contas ativas ($inactivePercentage%) sem login nos �ltimos 90 dias"
-        $securityAnalysis.Recommendations += "Revisar e desativar contas inativas para reduzir superf�cie de ataque"
+        $securityAnalysis.Findings += "Alto percentual de contas ativas ($inactivePercentage%) sem login nos últimos 90 dias"
+        $securityAnalysis.Recommendations += "Revisar e desativar contas inativas para reduzir superfície de ataque"
     }
 }
 
-# Verificar n�mero de administradores de dom�nio
+# Verificar número de administradores de domínio
 if ($stats.DomainAdmins -gt 5) {
-    $securityAnalysis.Findings += "N�mero elevado de administradores de dom�nio ($($stats.DomainAdmins))"
-    $securityAnalysis.Recommendations += "Reduzir o n�mero de contas com privil�gios de administrador de dom�nio"
+    $securityAnalysis.Findings += "Número elevado de administradores de domínio ($($stats.DomainAdmins))"
+    $securityAnalysis.Recommendations += "Reduzir o número de contas com privilégios de administrador de domínio"
 }
 
-# Verificar se h� Enterprise Admins (se aplic�vel)
+# Verificar se há Enterprise Admins (se aplicável)
 if ($stats.EnterpriseAdmins -gt 2) {
-    $securityAnalysis.Findings += "N�mero elevado de administradores enterprise ($($stats.EnterpriseAdmins))"
-    $securityAnalysis.Recommendations += "Restringir os privil�gios de administrador enterprise ao m�nimo necess�rio"
+    $securityAnalysis.Findings += "Número elevado de administradores enterprise ($($stats.EnterpriseAdmins))"
+    $securityAnalysis.Recommendations += "Restringir os privilégios de administrador enterprise ao mínimo necessário"
 }
 
-# Verificar n�vel funcional de dom�nio
+# Verificar nível funcional de domínio
 $outdatedDomainLevel = $false
 if ($stats.DomainLevel -like "*2008*" -or $stats.DomainLevel -like "*2003*" -or $stats.DomainLevel -like "*2000*") {
     $outdatedDomainLevel = $true
-    $securityAnalysis.Findings += "N�vel funcional de dom�nio desatualizado ($($stats.DomainLevel))"
-    $securityAnalysis.Recommendations += "Atualizar o n�vel funcional do dom�nio para uma vers�o mais recente"
+    $securityAnalysis.Findings += "Nível funcional de domínio desatualizado ($($stats.DomainLevel))"
+    $securityAnalysis.Recommendations += "Atualizar o nível funcional do domínio para uma versão mais recente"
 }
 
-# Verificar n�mero de controladores de dom�nio
+# Verificar número de controladores de domínio
 if ($stats.DomainControllers -lt 2) {
-    $securityAnalysis.Findings += "Apenas um controlador de dom�nio detectado"
-    $securityAnalysis.Recommendations += "Implementar pelo menos dois controladores de dom�nio para redund�ncia"
+    $securityAnalysis.Findings += "Apenas um controlador de domínio detectado"
+    $securityAnalysis.Recommendations += "Implementar pelo menos dois controladores de domínio para redundância"
 }
 
-# Definir n�vel de risco geral com base na quantidade de problemas encontrados
+# Definir nível de risco geral com base na quantidade de problemas encontrados
 if ($securityAnalysis.Findings.Count -ge 3) {
     $securityAnalysis.RiskLevel = "Alto"
 } elseif ($securityAnalysis.Findings.Count -ge 1) {
-    $securityAnalysis.RiskLevel = "M�dio"
+    $securityAnalysis.RiskLevel = "Médio"
 } else {
     $securityAnalysis.RiskLevel = "Baixo"
 }
 
-Write-Host "N�vel de risco identificado: $($securityAnalysis.RiskLevel)" -ForegroundColor Cyan
+Write-Host "Nível de risco identificado: $($securityAnalysis.RiskLevel)" -ForegroundColor Cyan
 foreach ($finding in $securityAnalysis.Findings) {
     Write-Host "  Problema: $finding" -ForegroundColor Yellow
 }
 foreach ($recommendation in $securityAnalysis.Recommendations) {
-    Write-Host "  Recomenda��o: $recommendation" -ForegroundColor Green
+    Write-Host "  Recomendação: $recommendation" -ForegroundColor Green
 }
 
 Write-Host ""
-Write-Host "Coletando dados para relat�rio..." -ForegroundColor Cyan
+Write-Host "Coletando dados para relatório..." -ForegroundColor Cyan
 
 # Coletar dados para as tabelas
 $topUsers = @()
@@ -406,7 +406,7 @@ try {
         Select-Object -First 10
 }
 catch {
-    Write-Host "Erro ao coletar dados de usu�rios ativos: $_" -ForegroundColor Yellow
+    Write-Host "Erro ao coletar dados de usuários ativos: $_" -ForegroundColor Yellow
 }
 
 try {
@@ -417,7 +417,7 @@ try {
         Select-Object -First 10
 }
 catch {
-    Write-Host "Erro ao coletar dados de usu�rios desativados: $_" -ForegroundColor Yellow
+    Write-Host "Erro ao coletar dados de usuários desativados: $_" -ForegroundColor Yellow
 }
 
 try {
@@ -439,7 +439,7 @@ catch {
     Write-Host "Erro ao coletar dados de servidores: $_" -ForegroundColor Yellow
 }
 
-# Preparar dados para o relat�rio
+# Preparar dados para o relatório
 $userDataHtml = ""
 foreach ($user in $topUsers) {
     $statusBadge = ""
@@ -453,7 +453,7 @@ foreach ($user in $topUsers) {
     if ($user.PasswordNeverExpires) {
         $passwordBadge = '<span class="badge-status badge-warning">Sim</span>'
     } else {
-        $passwordBadge = '<span class="badge-status badge-success">N�o</span>'
+        $passwordBadge = '<span class="badge-status badge-success">Não</span>'
     }
     
     $userDataHtml += @"
@@ -518,7 +518,7 @@ foreach ($recommendation in $securityAnalysis.Recommendations) {
 "@
 }
 
-# Gerar sistema operacional para o gr�fico
+# Gerar sistema operacional para o gráfico
 $osLabelsJs = "["
 $osDataJs = "["
 $osColorsJs = "["
@@ -540,15 +540,15 @@ $osLabelsJs = $osLabelsJs.TrimEnd(',') + "]"
 $osDataJs = $osDataJs.TrimEnd(',') + "]"
 $osColorsJs = $osColorsJs.TrimEnd(',') + "]"
 
-# Gerar conte�do do corpo do relat�rio
+# Gerar conteúdo do corpo do relatório
 $bodyContent = @"
-<!-- Cabe�alho padr�o -->
+<!-- Cabeçalho padrão -->
 <div class="header">
-    <h1>Active Directory - An�lise Completa</h1>
+    <h1>Active Directory - Análise Completa</h1>
     <div class="header-actions">
         <button onclick="exportToPdf()"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
         <button onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
-        <button onclick="sendReport()"><i class="fas fa-envelope"></i> Enviar Relat�rio</button>
+        <button onclick="sendReport()"><i class="fas fa-envelope"></i> Enviar Relatório</button>
     </div>
 </div>
 
@@ -556,14 +556,14 @@ $bodyContent = @"
 <div class="row">
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header">Informa��es do Dom�nio</div>
+            <div class="card-header">Informações do Domínio</div>
             <div class="card-body">
                 <p><strong>Empresa:</strong> $company</p>
-                <p><strong>Dom�nio:</strong> $($stats.DomainName)</p>
-                <p><strong>N�vel Funcional de Dom�nio:</strong> $($stats.DomainLevel)</p>
-                <p><strong>N�vel Funcional de Floresta:</strong> $($stats.ForestLevel)</p>
+                <p><strong>Domínio:</strong> $($stats.DomainName)</p>
+                <p><strong>Nível Funcional de Domínio:</strong> $($stats.DomainLevel)</p>
+                <p><strong>Nível Funcional de Floresta:</strong> $($stats.ForestLevel)</p>
                 <p><strong>Data:</strong> $date</p>
-                <p><strong>Respons�vel:</strong> $owner</p>
+                <p><strong>Responsável:</strong> $owner</p>
             </div>
         </div>
     </div>
@@ -571,34 +571,34 @@ $bodyContent = @"
     <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
-                <span>Resumo da Seguran�a</span>
+                <span>Resumo da Segurança</span>
                 <span class="risk-badge risk-badge-$($securityAnalysis.RiskLevel.ToLower())">Risco $($securityAnalysis.RiskLevel)</span>
             </div>
             <div class="card-body">
                 <div class="info-box">
-                    <p><strong>Total de Usu�rios:</strong> $($stats.TotalUsers) (Ativos: $($stats.EnabledUsers), Desativados: $($stats.DisabledUsers))</p>
-                    <p><strong>Usu�rios com senha que nunca expira:</strong> $($stats.PasswordNeverExpires)</p>
-                    <p><strong>Usu�rios sem login nos �ltimos $($stats.Days) dias:</strong> $($stats.LastLogon90Days)</p>
-                    <p><strong>Administradores de Dom�nio:</strong> $($stats.DomainAdmins)</p>
+                    <p><strong>Total de Usuários:</strong> $($stats.TotalUsers) (Ativos: $($stats.EnabledUsers), Desativados: $($stats.DisabledUsers))</p>
+                    <p><strong>Usuários com senha que nunca expira:</strong> $($stats.PasswordNeverExpires)</p>
+                    <p><strong>Usuários sem login nos últimos $($stats.Days) dias:</strong> $($stats.LastLogon90Days)</p>
+                    <p><strong>Administradores de Domínio:</strong> $($stats.DomainAdmins)</p>
                 </div>
                 
                 <!-- Problemas encontrados -->
 $findingsHtml
                 
-                <!-- Recomenda��es -->
+                <!-- Recomendações -->
 $recommendationsHtml
             </div>
         </div>
     </div>
 </div>
 
-<!-- Estat�sticas -->
+<!-- Estatísticas -->
 <div class="row mb-4">
     <div class="col-md-3">
         <div class="card stat-card">
             <i class="fas fa-users"></i>
             <h3>$($stats.TotalUsers)</h3>
-            <p>Total de Usu�rios</p>
+            <p>Total de Usuários</p>
         </div>
     </div>
     <div class="col-md-3">
@@ -619,16 +619,16 @@ $recommendationsHtml
         <div class="card stat-card">
             <i class="fas fa-shield-alt"></i>
             <h3>$($stats.DomainControllers)</h3>
-            <p>Controladores de Dom�nio</p>
+            <p>Controladores de Domínio</p>
         </div>
     </div>
 </div>
 
-<!-- Gr�ficos de Resumo -->
+<!-- Gráficos de Resumo -->
 <div class="row mb-4">
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header">Distribui��o de Usu�rios</div>
+            <div class="card-header">Distribuição de Usuários</div>
             <div class="card-body">
                 <div class="chart-container">
                     <canvas id="userChart"></canvas>
@@ -638,7 +638,7 @@ $recommendationsHtml
     </div>
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header">Distribui��o de Sistemas Operacionais</div>
+            <div class="card-header">Distribuição de Sistemas Operacionais</div>
             <div class="card-body">
                 <div class="chart-container">
                     <canvas id="osChart"></canvas>
@@ -648,12 +648,12 @@ $recommendationsHtml
     </div>
 </div>
 
-<!-- Tabs para navega��o de dados -->
+<!-- Tabs para navegação de dados -->
 <div class="card">
     <div class="card-header">
         <ul class="nav nav-tabs card-header-tabs" id="dataTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="true">Usu�rios Ativos</button>
+                <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="true">Usuários Ativos</button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="admins-tab" data-bs-toggle="tab" data-bs-target="#admins" type="button" role="tab" aria-controls="admins" aria-selected="false">Administradores</button>
@@ -662,15 +662,15 @@ $recommendationsHtml
                 <button class="nav-link" id="servers-tab" data-bs-toggle="tab" data-bs-target="#servers" type="button" role="tab" aria-controls="servers" aria-selected="false">Servidores</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab" aria-controls="security" aria-selected="false">Seguran�a</button>
+                <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab" aria-controls="security" aria-selected="false">Segurança</button>
             </li>
         </ul>
     </div>
     <div class="card-body">
         <div class="tab-content" id="dataTabsContent">
-            <!-- Tab de Usu�rios Ativos -->
+            <!-- Tab de Usuários Ativos -->
             <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
-                <h4>Usu�rios Ativos Recentes (Top 10)</h4>
+                <h4>Usuários Ativos Recentes (Top 10)</h4>
                 <div class="table-responsive">
                     <table>
                         <thead>
@@ -680,7 +680,7 @@ $recommendationsHtml
                                 <th>Email</th>
                                 <th>Departamento</th>
                                 <th>Cargo</th>
-                                <th>�ltimo Login</th>
+                                <th>Último Login</th>
                                 <th>Status</th>
                                 <th>Senha Nunca Expira</th>
                             </tr>
@@ -694,7 +694,7 @@ $userDataHtml
             
             <!-- Tab de Administradores -->
             <div class="tab-pane fade" id="admins" role="tabpanel" aria-labelledby="admins-tab">
-                <h4>Administradores de Dom�nio</h4>
+                <h4>Administradores de Domínio</h4>
                 <div class="table-responsive">
                     <table>
 <thead>
@@ -704,8 +704,8 @@ $userDataHtml
                                 <th>Email</th>
                                 <th>Departamento</th>
                                 <th>Cargo</th>
-                                <th>�ltimo Login</th>
-                                <th>�ltima Troca de Senha</th>
+                                <th>Último Login</th>
+                                <th>Última Troca de Senha</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -724,9 +724,9 @@ $adminDataHtml
                             <tr>
                                 <th>Nome</th>
                                 <th>Sistema Operacional</th>
-                                <th>Endere�o IP</th>
-                                <th>Descri��o</th>
-                                <th>�ltimo Login</th>
+                                <th>Endereço IP</th>
+                                <th>Descrição</th>
+                                <th>Último Login</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -736,12 +736,12 @@ $serverDataHtml
                 </div>
             </div>
             
-            <!-- Tab de Seguran�a -->
+            <!-- Tab de Segurança -->
             <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
-                <h4>An�lise de Seguran�a</h4>
+                <h4>Análise de Segurança</h4>
                 
                 <div class="mb-4">
-                    <h5>N�vel de Risco: <span class="risk-$($securityAnalysis.RiskLevel.ToLower())">$($securityAnalysis.RiskLevel)</span></h5>
+                    <h5>Nível de Risco: <span class="risk-$($securityAnalysis.RiskLevel.ToLower())">$($securityAnalysis.RiskLevel)</span></h5>
                     
                     <div class="row">
                         <div class="col-md-6">
@@ -759,7 +759,7 @@ $(foreach ($finding in $securityAnalysis.Findings) {
                         
                         <div class="col-md-6">
                             <div class="card mb-3">
-                                <div class="card-header">Recomenda��es</div>
+                                <div class="card-header">Recomendações</div>
                                 <div class="card-body">
                                     <ul class="list-group">
 $(foreach ($recommendation in $securityAnalysis.Recommendations) {
@@ -773,7 +773,7 @@ $(foreach ($recommendation in $securityAnalysis.Recommendations) {
                 </div>
                 
                 <div class="card">
-                    <div class="card-header">M�tricas de Seguran�a</div>
+                    <div class="card-header">Métricas de Segurança</div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-4">
@@ -875,19 +875,19 @@ $extraStyles = @"
 </style>
 "@
 
-# Script espec�fico para esta p�gina
+# Script específico para esta página
 $extraScripts = @"
 $extraStyles
 
 <script>
-    // Inicializar gr�ficos
+    // Inicializar gráficos
     document.addEventListener('DOMContentLoaded', function() {
-        // Gr�fico de distribui��o de usu�rios
+        // Gráfico de distribuição de usuários
         const userCtx = document.getElementById('userChart').getContext('2d');
         const userChart = new Chart(userCtx, {
             type: 'pie',
             data: {
-                labels: ['Usu�rios Ativos', 'Usu�rios Desativados', 'Senhas Nunca Expiram', 'Sem Login (90 dias)'],
+                labels: ['Usuários Ativos', 'Usuários Desativados', 'Senhas Nunca Expiram', 'Sem Login (90 dias)'],
                 datasets: [{
                     data: [
                         $($stats.EnabledUsers - $stats.PasswordNeverExpires - $stats.LastLogon90Days), 
@@ -915,7 +915,7 @@ $extraStyles
             }
         });
         
-        // Gr�fico de distribui��o de sistemas operacionais
+        // Gráfico de distribuição de sistemas operacionais
         const osCtx = document.getElementById('osChart').getContext('2d');
         const osChart = new Chart(osCtx, {
             type: 'bar',
@@ -945,72 +945,72 @@ $extraStyles
         });
     });
 
-    // Fun��es para intera��o
+    // Funções para interação
     function exportToPdf() {
-        alert('Exportando relat�rio para PDF...');
-        // Implementa��o da exporta��o para PDF
+        alert('Exportando relatório para PDF...');
+        // Implementação da exportação para PDF
     }
     
     function sendReport() {
-        alert('Enviando relat�rio por email...');
-        // Implementa��o do envio de relat�rio
+        alert('Enviando relatório por email...');
+        // Implementação do envio de relatório
     }
 </script>
 "@
 
 # Gerar o HTML completo usando o helper
 $html = New-ADRTReport -BodyContent $bodyContent `
-                      -Title "Active Directory Report Tool - An�lise Completa" `
-                      -ActiveMenu "An�lise Completa" `
+                      -Title "Active Directory Report Tool - Análise Completa" `
+                      -ActiveMenu "Análise Completa" `
                       -CompanyName $company `
                       -DomainName $stats.DomainName `
                       -Date $date `
                       -Owner $owner `
                       -ExtraScripts $extraScripts
 
-# Salvar o HTML no arquivo de sa�da
+# Salvar o HTML no arquivo de saída
 try {
-    # Criar diret�rio se n�o existir
+    # Criar diretório se não existir
     if (-not (Test-Path -Path $outputDir)) {
         New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     }
     
     [System.IO.File]::WriteAllText($outputPath, $html, [System.Text.UTF8Encoding]::new($false))
-    Write-Host "? Relat�rio HTML gerado com sucesso em: $outputPath" -ForegroundColor Green
+    Write-Host "✓ Relatório HTML gerado com sucesso em: $outputPath" -ForegroundColor Green
 }
 catch {
-    Write-Host "? Erro ao salvar o relat�rio: $_" -ForegroundColor Red
+    Write-Host "✗ Erro ao salvar o relatório: $_" -ForegroundColor Red
     exit 1
 }
 
-# Abrir o relat�rio no navegador
+# Abrir o relatório no navegador
 try {
     Start-Process $outputPath
-    Write-Host "? Relat�rio aberto no navegador com sucesso" -ForegroundColor Green
+    Write-Host "✓ Relatório aberto no navegador com sucesso" -ForegroundColor Green
 }
 catch {
-    Write-Host "! Erro ao abrir o relat�rio no navegador: $_" -ForegroundColor Yellow
-    Write-Host "Voc� pode abrir manualmente o arquivo em: $outputPath" -ForegroundColor Yellow
+    Write-Host "! Erro ao abrir o relatório no navegador: $_" -ForegroundColor Yellow
+    Write-Host "Você pode abrir manualmente o arquivo em: $outputPath" -ForegroundColor Yellow
 }
 
 # Fim do script
 Write-Host ""
-Write-Host "?????????????????????????????????????????????????????????????????" -ForegroundColor Cyan
-Write-Host "?                      AN�LISE CONCLU�DA                        ?" -ForegroundColor Cyan
-Write-Host "?????????????????????????????????????????????????????????????????" -ForegroundColor Cyan
+Write-Host "╔═══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+Write-Host "║                      ANÁLISE CONCLUÍDA                        ║" -ForegroundColor Cyan
+Write-Host "╚═══════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "A an�lise completa do Active Directory foi conclu�da com sucesso."
-Write-Host "O relat�rio foi gerado e aberto no seu navegador padr�o."
+Write-Host "A análise completa do Active Directory foi concluída com sucesso."
+Write-Host "O relatório foi gerado e aberto no seu navegador padrão."
 Write-Host ""
-Write-Host "Caminho do relat�rio: $outputPath"
+Write-Host "Caminho do relatório: $outputPath"
 Write-Host ""
 Write-Host ""
 if ($notificationModuleAvailable -and (Get-Variable -Name notificationSent -ErrorAction SilentlyContinue)) {
     if ($notificationSent) {
-        Write-Host "Uma notifica��o foi enviada para a equipe de suporte via email e/ou Telegram." -ForegroundColor Green
+        Write-Host "Uma notificação foi enviada para a equipe de suporte via email e/ou Telegram." -ForegroundColor Green
         Write-Host ""
     }
 }
-Write-Host "Recomenda��o: Execute esta an�lise periodicamente para monitorar"
-Write-Host "a seguran�a e a integridade do seu Active Directory."
+Write-Host "Recomendação: Execute esta análise periodicamente para monitorar"
+Write-Host "a segurança e a integridade do seu Active Directory."
 Write-Host ""
