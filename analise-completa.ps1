@@ -65,8 +65,6 @@ else {
     $owner = "Administrador"
 }
 
-# Adicione este trecho antes do resumo final no atualizar-relatorios.ps1
-
 # Tentar importar o módulo de notificação
 $notificationModuleAvailable = $false
 try {
@@ -100,7 +98,7 @@ if ($notificationModuleAvailable) {
         $stats.AtualizacaoFalhas = $falhas
         
         # Caminho do index-modern.html
-        $indexPath = Join-Path -Path (Get-Location).Path -ChildPath "index-modern.html"
+        $indexPath = Join-Path -Path (Get-Location).Path -ChildPath "\ad-reports\ad-admins\ad-admins-modern.html"
         
         # Enviar notificação usando a função existente
         $notificationSent = Send-ADRTNotification -ScriptName "atualizar-relatorios.ps1" `
