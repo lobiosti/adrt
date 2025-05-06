@@ -52,40 +52,20 @@ if (-not (Test-Path -Path $archiveDir)) {
     Write-Host "✓ Diretório de arquivamento criado: $archiveDir" -ForegroundColor Green
 }
 
-# Obter informações de configuração
-if (Test-Path -Path "config\config.txt") {
-    try {
-        $config = Get-Content -Path "config\config.txt" -Encoding UTF8 -ErrorAction Stop
-        $company = $config[7]
-        $owner = $config[9]
-        $smtpServer = $config[11]
-        $port = $config[13]
-        $from = $config[15]
-        $to = $config[17]
-        Write-Host "✓ Arquivo de configuração carregado com sucesso" -ForegroundColor Green
-    }
-    catch {
-        Write-Host "! Erro ao ler arquivo de configuração. Usando valores padrão." -ForegroundColor Yellow
-        $company = "Lobios"
-        $owner = "Administrador"
-        $smtpServer = "smtp.example.com"
-        $port = "25"
-        $from = "adrt@example.com"
-        $to = "admin@example.com"
-    }
-}
-else {
-    Write-Host "! Arquivo de configuração não encontrado. Usando valores padrão." -ForegroundColor Yellow
-    $company = "Lobios"
-    $owner = "Administrador"
-    $smtpServer = "smtp.example.com"
-    $port = "25"
-    $from = "adrt@example.com"
-    $to = "admin@example.com"
-}
-
 # Carregar o helper
 . ".\modules\ADRT-Helper.ps1"
+
+# Tentar importar o módulo de notificação
+$notificationModuleAvailable = $false
+try {
+    Import-Module ".\modules\ADRT-Notification.psm1" -ErrorAction Stop
+    $notificationModuleAvailable = $true
+    Write-Host "✓ Módulo de notificações carregado com sucesso" -ForegroundColor Green
+}
+catch {
+    Write-Host "! Módulo de notificações não encontrado. As notificações não serão enviadas." -ForegroundColor Yellow
+    Write-Host "  Para habilitar notificações, certifique-se que o arquivo ADRT-Notification.psm1 está presente na pasta modules." -ForegroundColor Yellow
+}
 
 # Importar módulo ActiveDirectory
 try {
@@ -787,6 +767,32 @@ catch {
     Write-Host "✗ Erro ao enviar email: $_" -ForegroundColor Red
 }
 
+# Enviar notificações de conclusão da análise
+if ($notificationModuleAvailable) {
+    Write-Host ""
+    Write-Host "Enviando notificações..." -ForegroundColor Cyan
+    
+    # Completar estatísticas para relatório
+    $stats.TotalDevices = $stats.TotalComputers + $stats.TotalServers
+    
+    try {
+        Send-ADRTNotification -ScriptName $MyInvocation.MyCommand.Name `
+                             -Type "Relatório Completo" `
+                             -Stats $stats `
+                             -Domain $stats.DomainName `
+                             -ReportPath $outputPath
+        
+        Write-Host "✓ Notificações enviadas com sucesso" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "✗ Erro ao enviar notificações: $_" -ForegroundColor Red
+    }
+}
+
+if ($notificationModuleAvailable) {
+    Write-Host "Uma notificação foi enviada para a equipe de suporte via email e/ou Telegram."
+    Write-Host ""
+}
 
 # Abrir o relatório no navegador
 try {

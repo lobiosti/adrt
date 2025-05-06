@@ -11,12 +11,12 @@ Write-Host @"
 
 ╔═══════════════════════════════════════════════════════════════╗
 ║                                                               ║
-║      ██╗      ██████╗ ██████╗ ██╗ ██████╗ ███████╗           ║
-║      ██║     ██╔═══██╗██╔══██╗██║██╔═══██╗██╔════╝           ║
-║      ██║     ██║   ██║██████╔╝██║██║   ██║███████╗           ║
-║      ██║     ██║   ██║██╔══██╗██║██║   ██║╚════██║           ║
-║      ███████╗╚██████╔╝██████╔╝██║╚██████╔╝███████║           ║
-║      ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝ ╚═════╝ ╚══════╝           ║
+║      ██╗      ██████╗ ██████╗ ██╗ ██████╗ ███████╗            ║
+║      ██║     ██╔═══██╗██╔══██╗██║██╔═══██╗██╔════╝            ║
+║      ██║     ██║   ██║██████╔╝██║██║   ██║███████╗            ║
+║      ██║     ██║   ██║██╔══██╗██║██║   ██║╚════██║            ║
+║      ███████╗╚██████╔╝██████╔╝██║╚██████╔╝███████║            ║
+║      ╚══════╝ ╚═════╝ ╚═════╝ ╚═╝ ╚═════╝ ╚══════╝            ║
 ║                                                               ║
 ║      ADRT - Active Directory Report Tool (Versão Moderna)     ║
 ║                                                               ║
@@ -175,6 +175,58 @@ catch {
     Write-Host "  ✗ Erro ao abrir o painel de controle: $_" -ForegroundColor Red
 }
 
+# Adicione este trecho antes do resumo final no atualizar-relatorios.ps1
+
+# Tentar importar o módulo de notificação
+$notificationModuleAvailable = $false
+try {
+    Import-Module ".\modules\ADRT-Notification.psm1" -ErrorAction Stop
+    $notificationModuleAvailable = $true
+    Write-Host ""
+    Write-Host "Enviando notificações..." -ForegroundColor Cyan
+}
+catch {
+    Write-Host "! Módulo de notificações não encontrado. As notificações não serão enviadas." -ForegroundColor Yellow
+}
+
+# Enviar notificações se o módulo estiver disponível
+if ($notificationModuleAvailable) {
+    try {
+        # Criar hashtable para simular as estatísticas necessárias
+        $stats = @{
+            TotalUsers = 0
+            TotalComputers = 0
+            TotalServers = 0
+            TotalGroups = 0
+            TotalOUs = 0
+            TotalGPOs = 0
+            TotalDevices = 0 # Adicionado para evitar o erro
+            DomainName = (Get-ADDomain).Forest
+        }
+        
+        # Adicionar estatísticas específicas de atualização
+        $stats.AtualizacaoTotal = $totalScripts
+        $stats.AtualizacaoSucessos = $sucessos
+        $stats.AtualizacaoFalhas = $falhas
+        
+        # Caminho do index-modern.html
+        $indexPath = Join-Path -Path (Get-Location).Path -ChildPath "index-modern.html"
+        
+        # Enviar notificação usando a função existente
+        $notificationSent = Send-ADRTNotification -ScriptName "atualizar-relatorios.ps1" `
+                                                 -Type "Atualização de Relatórios" `
+                                                 #-Stats $stats `
+                                                 -Domain $stats.DomainName `
+                                                 -ReportPath $indexPath
+        
+        Write-Host "✓ Notificações enviadas com sucesso" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "✗ Erro ao enviar notificações: $_" -ForegroundColor Red
+        $notificationSent = $false
+    }
+}
+
 # Resumo da execução
 Write-Host ""
 Write-Host "╔═══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
@@ -194,4 +246,10 @@ Write-Host "ser acessados pelo painel de controle que foi aberto automaticamente
 Write-Host ""
 Write-Host "Para visualizar novamente o painel de controle, abra o arquivo 'index-modern.html'."
 Write-Host ""
+if ($notificationModuleAvailable -and (Get-Variable -Name notificationSent -ErrorAction SilentlyContinue)) {
+    if ($notificationSent) {
+        Write-Host "Uma notificação foi enviada para a equipe de suporte via email e/ou Telegram." -ForegroundColor Green
+        Write-Host ""
+    }
+}
 Write-Host "Atualização concluída!" -ForegroundColor Green
