@@ -17,9 +17,49 @@
 $OutputEncoding = [System.Text.UTF8Encoding]::new()
 $PSDefaultParameterValues['Out-File:Encoding'] = 'UTF8'
 
+# Primeiro verificar a versão do PowerShell usando Start.ps1
+Write-Host "Verificando versão do PowerShell..." -ForegroundColor Cyan
+
+# Criar um script temporário para verificação do PowerShell
+$tempScriptPath = Join-Path -Path $env:TEMP -ChildPath "CheckPSVersion.ps1"
+@'
+# Verificar versão do PowerShell
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Host "Este script requer o PowerShell 7 ou superior." -ForegroundColor Red
+    Write-Host "Você está usando o PowerShell $($PSVersionTable.PSVersion)."
+    Write-Host ""
+    Write-Host "Para utilizar todas as funcionalidades do ADRT, é necessário instalar o PowerShell 7." -ForegroundColor Yellow
+    Write-Host "Link para download: https://aka.ms/powershell-release?tag=stable" -ForegroundColor Cyan
+    Write-Host ""
+    $choice = Read-Host "Deseja abrir o link para baixar o PowerShell 7? (S/N)"
+    
+    if ($choice -eq "S" -or $choice -eq "s") {
+        Start-Process "https://aka.ms/powershell-release?tag=stable"
+    }
+    
+    Write-Host "Por favor, instale o PowerShell 7 e execute novamente este script." -ForegroundColor Green
+    exit 1
+}
+
+# Se chegou aqui, está usando PowerShell 7+
+Write-Host "PowerShell 7 detectado. Versão: $($PSVersionTable.PSVersion)" -ForegroundColor Green
+exit 0
+'@ | Out-File -FilePath $tempScriptPath -Encoding utf8
+
+# Executar o script de verificação
+$psCheckResult = & powershell -File $tempScriptPath
+if ($LASTEXITCODE -eq 1) {
+    # Erro na versão do PowerShell
+    Read-Host "Pressione Enter para sair"
+    exit
+}
+
+# Limpar arquivo temporário
+Remove-Item -Path $tempScriptPath -Force -ErrorAction SilentlyContinue
+
 # URLs e informações de repositório
-$repoOwner = "lobios"
-$repoName = "adrt-modern"
+$repoOwner = "lobiosti"
+$repoName = "adrt"
 $repoBranch = "main"
 $baseUrl = "https://raw.githubusercontent.com/$repoOwner/$repoName/$repoBranch"
 
@@ -28,7 +68,9 @@ $coreFiles = @(
     "index-modern.html",
     "README.md",
     "Start-ADRT.ps1",
+    "Start.ps1",
     "setup-ADRT.ps1",
+    "atualizar-relatorios.ps1",
     "Uninstall-ADRT.ps1",
     "analise-completa.ps1",
     "ad-users-modern.ps1",
@@ -87,6 +129,11 @@ $resources = @(
         URL = "$baseUrl/templates/modern-template.html"
         Path = "templates\modern-template.html"
         Type = "Template"
+    },
+    @{
+        URL = "$baseUrl/modules/ADRT-Helper.ps1"
+        Path = "modules\ADRT-Helper.ps1"
+        Type = "Module"
     },
     @{
         URL = "$baseUrl/modules/ADRT-Modern.psm1"
@@ -178,6 +225,17 @@ function Test-Requirements {
     } catch {
         Write-Host "❌ Não foi possível conectar à Internet: $_" -ForegroundColor Red
         Write-Host "A instalação online requer acesso à Internet para baixar os arquivos necessários." -ForegroundColor Yellow
+        return $false
+    }
+    
+    # Verificar acesso ao repositório específico
+    Write-Host "Verificando acesso ao repositório ADRT..." -ForegroundColor Gray
+    try {
+        $repoCheck = Invoke-WebRequest -Uri "https://github.com/$repoOwner/$repoName" -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+        Write-Host "✅ Repositório ADRT acessível" -ForegroundColor Green
+    } catch {
+        Write-Host "❌ Não foi possível acessar o repositório ADRT: $_" -ForegroundColor Red
+        Write-Host "Verifique se o repositório está disponível e se você tem acesso à Internet." -ForegroundColor Yellow
         return $false
     }
     
@@ -304,6 +362,60 @@ function Configure-Files {
         Write-Host "❌ Erro ao buscar scripts PS1: $_" -ForegroundColor Red
     }
     
+    # Modificar atualizar-relatorios.ps1 para evitar abrir todos os relatórios
+    try {
+        $atualizarScriptPath = Join-Path -Path (Get-Location) -ChildPath "atualizar-relatorios.ps1"
+        if (Test-Path -Path $atualizarScriptPath) {
+            Write-Host "Modificando script de atualização para não abrir todos os relatórios..." -ForegroundColor Gray
+            
+            $scriptContent = Get-Content -Path $atualizarScriptPath -Raw -ErrorAction SilentlyContinue
+            
+            # Substituir o conteúdo para adicionar a lógica de não abrir relatórios individuais
+            $originalStartProcess = 'function global:Start-Process {'
+            $newContent = $scriptContent
+            
+            if ($scriptContent -and -not $scriptContent.Contains($originalStartProcess)) {
+                # Adicionar o código para redefinir Start-Process após o OutputEncoding
+                $psDefaultParam = '$PSDefaultParameterValues[''Out-File:Encoding''] = ''UTF8'''
+                $newCodeToAdd = @'
+
+# Redefinir a função Start-Process temporariamente para evitar a abertura automática de cada relatório
+$originalStartProcess = ${function:Start-Process}
+
+# Redefinir o Start-Process para evitar abertura automática de relatórios
+function global:Start-Process {
+    param($FilePath, $ArgumentList, $Verb, $Wait)
+    
+    # Se o caminho terminar com .html, não abrir (exceto para o index-modern.html no final)
+    if ($FilePath -like "*.html" -or $FilePath -like "*.htm") {
+        Write-Verbose "Ignorando abertura automática do arquivo: $FilePath" -Verbose:$false
+        return
+    }
+    
+    # Caso contrário, chamar a função original
+    & $originalStartProcess $FilePath $ArgumentList $Verb $Wait
+}
+'@
+                $newContent = $scriptContent -replace [regex]::Escape($psDefaultParam), "$psDefaultParam`r`n$newCodeToAdd"
+                
+                # Adicionar o código para restaurar Start-Process antes de abrir o painel de controle
+                $abrirPainel = "# Abrir o painel de controle"
+                $restoreCode = @'
+# Restaurar a função original Start-Process
+Set-Item -Path function:Start-Process -Value $originalStartProcess
+
+'@
+                $newContent = $newContent -replace [regex]::Escape($abrirPainel), "$restoreCode$abrirPainel"
+                
+                # Salvar o script modificado
+                [System.IO.File]::WriteAllText($atualizarScriptPath, $newContent, [System.Text.UTF8Encoding]::new($false))
+                Write-Host "✅ Script de atualização modificado com sucesso" -ForegroundColor Green
+            }
+        }
+    } catch {
+        Write-Host "❌ Erro ao modificar script de atualização: $_" -ForegroundColor Red
+    }
+    
     # Configurar arquivo de configuração
     $configPath = Join-Path -Path (Get-Location) -ChildPath "config\config.txt"
     if (Test-Path -Path $configPath) {
@@ -347,7 +459,7 @@ function Complete-Installation {
     Write-Host "Finalizando instalação..." -ForegroundColor Cyan
     
     # Verificar se o script principal existe
-    $startScript = Join-Path -Path (Get-Location) -ChildPath "Start-ADRT.ps1"
+    $startScript = Join-Path -Path (Get-Location) -ChildPath "Start.ps1"
     if (Test-Path -Path $startScript) {
         # Criar atalho na área de trabalho (opcional)
         $createShortcut = Read-Host "Deseja criar um atalho na área de trabalho? (S/N)"
@@ -403,10 +515,10 @@ function Complete-Installation {
     Write-Host "╚═══════════════════════════════════════════════════════════════╝" -ForegroundColor Green
     Write-Host ""
     Write-Host "O ADRT Moderno foi instalado com sucesso!" -ForegroundColor Cyan
-    Write-Host "Para iniciar o ADRT, execute o script 'Start-ADRT.ps1'." -ForegroundColor Cyan
+    Write-Host "Para iniciar o ADRT, execute o script 'Start.ps1'." -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Para gerar relatórios completos, execute:" -ForegroundColor Yellow
-    Write-Host "  .\analise-completa.ps1" -ForegroundColor Yellow
+    Write-Host "  .\atualizar-relatorios.ps1" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Ou para visualizar o painel de controle, abra:" -ForegroundColor Yellow
     Write-Host "  .\index-modern.html" -ForegroundColor Yellow

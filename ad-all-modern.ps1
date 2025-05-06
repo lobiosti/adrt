@@ -699,7 +699,7 @@ foreach ($file in $reportFiles) {
 }
 
 # Enviando relatório por email (descomentado para uso em produção)
-<#
+
 $Subject = "[ Relatório-$month ] Active Directory - Análise Completa"
 
 try {
@@ -786,7 +786,7 @@ try {
 catch {
     Write-Host "✗ Erro ao enviar email: $_" -ForegroundColor Red
 }
-#>
+
 
 # Abrir o relatório no navegador
 try {

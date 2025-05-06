@@ -139,23 +139,25 @@ function Initialize-Environment {
 function Show-MainMenu {
     Write-Host "MENU PRINCIPAL" -ForegroundColor Cyan
     Write-Host "──────────────────────────────────────────────" -ForegroundColor DarkGray
-    Write-Host "1. Gerar todos os relatórios"
+    Write-Host "1. Atualizar todos os relatórios"
     Write-Host "2. Gerar relatório específico"
-    Write-Host "3. Gerar análise de segurança"
-    Write-Host "4. Abrir painel de controle"
-    #Write-Host "5. Limpar relatórios antigos"
-    Write-Host "5. Sair"
+    Write-Host "3. Gerar análise completa (ad-all-modern)"
+    Write-Host "4. Gerar análise de segurança"
+    Write-Host "5. Abrir painel de controle"
+    Write-Host "6. Limpar relatórios antigos"
+    Write-Host "7. Sair"
     Write-Host "──────────────────────────────────────────────" -ForegroundColor DarkGray
     
-    $choice = Read-Host "Selecione uma opção (1-6)"
+    $choice = Read-Host "Selecione uma opção (1-7)"
     
     switch ($choice) {
         "1" { Generate-AllReports }
         "2" { Show-ReportMenu }
-        "3" { Generate-SecurityAnalysis }
-        "4" { Open-Dashboard }
-        #"5" { Clear-OldReports }
-        "5" { return $false }
+        "3" { Generate-AllInOneReport }
+        "4" { Generate-SecurityAnalysis }
+        "5" { Open-Dashboard }
+        "6" { Clear-OldReports -ScriptDirectory $scriptPath }
+        "7" { return $false }
         default { 
             Write-Host "Opção inválida. Por favor, tente novamente." -ForegroundColor Red
             Start-Sleep -Seconds 2
@@ -404,6 +406,118 @@ function Main {
     Write-Host "ADRT - Active Directory Report Tool encerrado." -ForegroundColor Cyan
     Write-Host "Obrigado por utilizar nossa ferramenta!" -ForegroundColor Green
     Start-Sleep -Seconds 2
+}
+
+function Generate-AllInOneReport {
+    Clear-Host
+    Show-Banner
+    
+    Write-Host "Gerando análise completa em um único relatório..." -ForegroundColor Cyan
+    Write-Host "Este processo pode levar alguns minutos. Por favor, aguarde." -ForegroundColor Yellow
+    
+    $allInOneScript = Join-Path -Path $scriptPath -ChildPath "ad-all-modern.ps1"
+    
+    if (Test-Path -Path $allInOneScript) {
+        try {
+            & $allInOneScript
+            
+            Write-Host ""
+            Write-Host "Análise completa (all-in-one) gerada com sucesso!" -ForegroundColor Green
+            Write-Host "Pressione qualquer tecla para continuar..." -ForegroundColor Cyan
+            $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        }
+        catch {
+            Write-Host "Erro ao gerar análise completa (all-in-one): $_" -ForegroundColor Red
+            Write-Host "Pressione qualquer tecla para continuar..." -ForegroundColor Yellow
+            $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        }
+    }
+    else {
+        Write-Host "Script de análise completa não encontrado: $allInOneScript" -ForegroundColor Red
+        Write-Host "Pressione qualquer tecla para continuar..." -ForegroundColor Yellow
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+}
+
+function Clear-OldReports {
+    Clear-Host
+    Show-Banner
+    
+    Write-Host "Limpeza de Relatórios Antigos" -ForegroundColor Cyan
+    Write-Host "──────────────────────────────────────────────" -ForegroundColor DarkGray
+
+    # Obtém o diretório do script com fallback seguro
+    if ($PSScriptRoot) {
+        $scriptDir = $PSScriptRoot
+    } elseif ($MyInvocation.MyCommand.Path) {
+        $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    } else {
+        Write-Host "✗ Não foi possível determinar o diretório do script." -ForegroundColor Red
+        Write-Host "Pressione qualquer tecla para continuar..." -ForegroundColor Yellow
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        return
+    }
+
+    $reportsPath = Join-Path -Path $scriptDir -ChildPath "ad-reports"
+
+    if (-not (Test-Path -Path $reportsPath)) {
+        Write-Host "O diretório de relatórios não existe: $reportsPath" -ForegroundColor Yellow
+        Write-Host "Pressione qualquer tecla para continuar..." -ForegroundColor Yellow
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        return
+    }
+
+    Write-Host "Esta operação irá APAGAR TODOS os relatórios gerados anteriormente." -ForegroundColor Red
+    Write-Host "O conteúdo da pasta $reportsPath será completamente removido." -ForegroundColor Yellow
+    Write-Host ""
+
+    $confirmation = Read-Host "Tem certeza que deseja continuar? (S/N)"
+
+    if ($confirmation.ToUpper() -eq "S") {
+        try {
+            # Remove a pasta completa e todo seu conteúdo
+            Remove-Item -Path $reportsPath -Recurse -Force
+
+            # Recria a estrutura de diretórios vazia
+            $directories = @(
+                "ad-users",
+                "ad-admins",
+                "ad-enterprise-admins",
+                "ad-disabled",
+                "ad-lastlogon",
+                "ad-neverexpires",
+                "ad-groups",
+                "ad-membergroups",
+                "ad-ous",
+                "ad-computers",
+                "ad-servers",
+                "ad-dcs",
+                "ad-gpos",
+                "ad-inventory",
+                "ad-analysis",
+                "ad-all"
+            )
+
+            foreach ($dir in $directories) {
+                $dirPath = Join-Path -Path $reportsPath -ChildPath $dir
+                New-Item -ItemType Directory -Path $dirPath -Force | Out-Null
+            }
+
+            Write-Host ""
+            Write-Host "✓ Limpeza concluída com sucesso! Todos os relatórios foram removidos." -ForegroundColor Green
+        }
+        catch {
+            Write-Host "✗ Erro ao limpar os relatórios: $_" -ForegroundColor Red
+        }
+    }
+    else {
+        Write-Host ""
+        Write-Host "Operação cancelada pelo usuário." -ForegroundColor Yellow
+    }
+
+    Write-Host ""
+    Write-Host "Pressione qualquer tecla para continuar..." -ForegroundColor Cyan
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
 
 # Iniciar a execução do script
